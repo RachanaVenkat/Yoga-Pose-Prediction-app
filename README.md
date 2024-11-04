@@ -51,7 +51,4 @@ As it is not trained you will need to provide data use below kaggele dataset dow
 
 
 
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/ayushdahiwale/)
-
-
 
