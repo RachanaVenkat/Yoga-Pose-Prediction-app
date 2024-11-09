@@ -112,7 +112,10 @@ def predict():
     os.remove(image_path)
 
     # Return the prediction result and plot to the prediction.html template
-    return render_template('prediction.html', prediction=prediction, plot_base64=plot_base64)
+    return render_template('prediction.html', 
+                       plot_base64=base64_plot, 
+                       prediction=predicted_class,
+                       metrics=metrics)
 
 if __name__ == '__main__':
     app.run(debug=True)
