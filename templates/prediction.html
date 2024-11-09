@@ -94,9 +94,31 @@
 
 <main>
     <h1>Yoga Pose Prediction Result</h1>
-    <img src="data:image/png;base64,{{ plot_base64 }}" alt="Prediction Plot">
-    <p><strong>Prediction:</strong> {{ prediction }}</p>
+
+    <div class="prediction-box">
+        <h2>Prediction Result</h2>
+        <img src="data:image/png;base64,{{ plot_base64 }}" alt="Prediction Plot">
+        <p><strong>Prediction:</strong> {{ prediction }}</p>
+    </div>
+
+    <h2>Model Training Results</h2>
+
+    <h3>Accuracy and Loss Over Epochs</h3>
+    <img src="/static/accuracy_plot.png" alt="Accuracy Plot" width="60%">
+    <img src="/static/loss_plot.png" alt="Loss Plot" width="60%">
+
+    <h3>Per-Class Metrics</h3>
+    <table>
+        <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1 Score</th></tr>
+        {% for row in metrics %}
+        <tr><td>{{ row.Class }}</td><td>{{ row.Precision }}</td><td>{{ row.Recall }}</td><td>{{ row['F1 Score'] }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Confusion Matrix</h3>
+    <img src="/static/confusion_matrix.png" alt="Confusion Matrix" width="70%">
 </main>
+
 
 <footer>
     <p>&copy; 2024 All rights reserved</p>
