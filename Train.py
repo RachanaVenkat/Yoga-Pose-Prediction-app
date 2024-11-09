@@ -5,22 +5,16 @@ from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, TensorDataset
 import torch
 from torch import nn
-from torchmetrics import Accuracy, F1Score
+from torchmetrics import Accuracy
 from tqdm.auto import tqdm
-
-# Your imports for model trainingg
-
-# Your imports for ultralytics, YOLO, and other necessary libraries
 from ultralytics import YOLO
-
 
 # Set device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# Your code for loading the dataset and preprocessing
+# Load YOLO model and prepare dataset
 image_folder = "Test_Data"
 model_yolo = YOLO("yolov8x-pose-p6.pt")
-
 data = []
 
 for label in os.listdir(image_folder):
@@ -28,13 +22,13 @@ for label in os.listdir(image_folder):
     for img_name in os.listdir(label_dir):
         img_path = os.path.join(label_dir, img_name)
 
-        # Extracting keypoint with YOLOv8
+        # Extract keypoints using YOLOv8
         results = model_yolo.predict(img_path, boxes=False, verbose=False)
         for r in results:
             keypoints = r.keypoints.xyn.cpu().numpy()[0]
-            keypoints = keypoints.reshape((1, keypoints.shape[0]*keypoints.shape[1]))[0].tolist()
-            keypoints.append(img_path)  # insert image path
-            keypoints.append(label)     # insert image label
+            keypoints = keypoints.reshape((1, keypoints.shape[0] * keypoints.shape[1]))[0].tolist()
+            keypoints.append(img_path)  # Add image path
+            keypoints.append(label)     # Add label
 
             data.append(keypoints)
 
@@ -46,7 +40,7 @@ df = pd.DataFrame(
     "x34": "image_path", "x35": "label"
 }, axis=1)
 
-df = df.dropna()  # delete undetected pose
+df = df.dropna()  # Drop rows with undetected poses
 df = df.iloc[:, 2:]
 
 le = LabelEncoder()
@@ -69,13 +63,12 @@ train_tensor = TensorDataset(X_train, y_train)
 test_tensor = TensorDataset(X_test, y_test)
 
 BATCH_SIZE = 32
-
 train_dataloader = DataLoader(dataset=train_tensor, batch_size=BATCH_SIZE, shuffle=True)
 test_dataloader = DataLoader(dataset=test_tensor, batch_size=BATCH_SIZE, shuffle=False)
 
 accuracy_score = Accuracy(task="multiclass", num_classes=num_classes).to(device)
-f1_score = F1Score(task="multiclass", num_classes=num_classes).to(device)
 
+# Define YogaClassifier model
 class YogaClassifier(nn.Module):
     def __init__(self, num_classes, input_length):
         super().__init__()
@@ -94,14 +87,13 @@ class YogaClassifier(nn.Module):
         x = self.outlayer(x)
         return x
 
-input_length = X.shape[1]
+# Initialize model, optimizer, and loss function
 model = YogaClassifier(num_classes=num_classes, input_length=input_length).to(device)
-
 optimizer = torch.optim.Adam(lr=0.001, params=model.parameters())
 loss_fn = nn.CrossEntropyLoss()
 
+# Training the model
 epochs = 200
-
 for epoch in tqdm(range(epochs)):
     model.train()
     for batch, (X, y) in enumerate(train_dataloader):
@@ -112,5 +104,21 @@ for epoch in tqdm(range(epochs)):
         loss.backward()
         optimizer.step()
 
+    # Evaluation on test data at the end of each epoch
+    model.eval()
+    correct_predictions = 0
+    total_predictions = 0
+    with torch.no_grad():
+        for X, y in test_dataloader:
+            X, y = X.to(device), y.to(device)
+            outputs = model(X)
+            predictions = outputs.argmax(dim=1)
+            correct_predictions += (predictions == y).sum().item()
+            total_predictions += y.size(0)
 
+    accuracy = correct_predictions / total_predictions
+    print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}, Test Accuracy: {accuracy:.4f}")
+
+# Save the trained model
 torch.save(model.state_dict(), 'best.pth')
+print("Training complete. Model saved as 'best.pth'")
